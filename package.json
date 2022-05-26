@@ -1,0 +1,19 @@
+{
+  "name": "mongoosastic-synchroize-problem-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1",
+    "mogoose": "^0.0.1-security",
+    "mongoosastic": "^5.0.0",
+    "node-mongodb-fixtures": "^3.2.9",
+    "tslib": "^2.4.0"
+  }
+}
