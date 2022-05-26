@@ -1,74 +1,89 @@
-// const createConnection = require('./mongodb');
-// const createProducts = require('./load');
+const mongoose = require("mongoose");
+const createConnection = require("./mongodb");
+const createMany = require("./load");
+const mongoosastic = require("mongoosastic");
 
+const main = async () => {
+  const connection = await createConnection();
 
+  const schema = mongoose.Schema({
+    name: {
+      type: String,
+      required: true,
+    },
+    state: {
+      type: Number,
+      default: 0,
+    },
+    description: {
+      type: String,
+      default: "",
+    },
+    unitMeasure: {
+      type: Number,
+      required: true,
+    },
+    productId: {
+      type: String,
+    },
+  });
 
-// async function main() {
-//   const instance = await createConnection();
-//   console.log('connected to db', instance);
-//   const schema = new instance.Schema({
-//     name: {
-//       type: String,
-//       required: true
-//     },
-//     state: {
-//       type: Number,
-//       default: 0
-//     },
-//     description: {
-//       type: String,
-//       default: ''
-//     },
-//     unitMeasure: {
-//       type: Number,
-//       required: true
-//     },
-//     productId: {
-//       type: String
-//     }
-//   });
-//   const productModel = instance.model('Product', schema);
-//   console.log('model created');
-//   await createProducts(productModel);
-// }
+  schema.plugin(mongoosastic, {
+    index: "demo",
+    bulk: {
+      size: 1000, // preferred number of docs to bulk index
+      delay: 100, //milliseconds to wait for enough docs to meet size constraint
+    },
+  });
 
-// main().then(res => console.log('hello000', res));
+  const Product = mongoose.model("Product", schema);
+  for await (const doc of Product.find().cursor()) {
+    const docToIndex = { name: doc.name };
 
-const fs = require('fs');
-const path = require('path');
-
-const data = fs.readFileSync(path.join('./data', 'products2.json'));
-const products = JSON.parse(data);
-
-
-const mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost:27017/demo');
-
-const Product = mongoose.model('Product', {
-  name: {
-    type: String,
-    required: true
-  },
-  state: {
-    type: Number,
-    default: 0
-  },
-  description: {
-    type: String,
-    default: ''
-  },
-  unitMeasure: {
-    type: Number,
-    required: true
-  },
-  productId: {
-    type: String
+    Product.bulkAdd({
+      bulk: {
+        size: 1000,
+        delay: 100,
+      },
+      body: docToIndex,
+      index: "demo",
+      model: Product,
+      id: doc._id.toString(),
+    });
   }
-});
 
-console.log('Done parsing');
+  // const stream = Product.synchronize();
 
-Product.insertMany(products).then(() => console.log('WORKS?!'))
+  // let count = 0;
 
+  // stream.on("data", function (err, doc) {
+  //   count++;
+  // });
 
+  // stream.on("close", function () {
+  //   console.log("indexed " + count + " documents!");
+  // });
 
+  // stream.on("error", function (err) {
+  //   console.log(err);
+  // });
+};
+
+main().then((res) => console.log(res));
+const mongoose = require("mongoose");
+
+async function createConnection() {
+  return new Promise((resolve, reject) => {
+    try {
+      const connection = mongoose.connect("mongodb://localhost:27017/demo");
+      mongoose.connection.on("connected", () => {
+        console.log("Connection successful");
+        resolve(connection);
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+module.exports = createConnection;
